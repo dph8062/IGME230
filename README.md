@@ -1,2 +1,2 @@
 # IGME230
-Web Dev class
+Required materials for IGME-230
