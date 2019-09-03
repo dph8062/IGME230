@@ -1,0 +1,22 @@
+open terminal
+ssh dph8062@banjo.rit.edu
+password
+
+ls - see files in folder
+ls -al - see all files (including "invisible")
+pwd - see directory
+touch ___ - create new file with that name
+cd ___ - enter directory typed in
+cd .. - return to parent directory
+mv (file) (directory) - short for move, can be used to move file to different folder (dir/newname.file to move & rename)
+mv (file) (new name) - rename file
+nano ___ - open text editor
+WriteOut - save command
+cat ___ ___ - concatenate two files together
+cat ___ - dump contents of file to terminal
+chmod (permission number) (file/dir) - edit file permissions
+mkdir ___ - make directory
+rm ___ - delete file
+rmdir ___ - delete directory
+cp (file name) (new file name) - duplicate file
+use * instead of file/dir name to select everything
