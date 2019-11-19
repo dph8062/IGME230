@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Triviapp</title>
+  </head>
+  <body>
+    <h1>Welcome to Triviapp</h1>
+    <label for="amount">Number of trivia questions:</label>
+    <input name="amount" type="number" id="amount" min="1" max="50" value="10">
+    <select id="category">
+      <option value="all">All Categories</option>
+    </select>
+    <select id="difficulty">
+      <option value="any">Any Difficulty</option>
+      <option value="easy">Easy</option>
+      <option value="medium">Medium</option>
+      <option value="hard">Hard</option>
+    </select>
+    <button id="startButton">Generate questions!</button>
+      
+    <h2 id="status"></h2>
+    <div id="content"></div>
+    <div id="scoreCard"></div>
+
+    <script>
+      "use strict";
+        window.onload = (e) => {
+          document.querySelector("#startButton").onclick = startButtonClicked;
+          document.querySelector("#category").onchange = categorySelected;
+          init();
+        };
+        
+      let qAnswered;
+      let qNumber;
+      let localScore;
+      let totalScore = 0;
+      let sessionToken = localStorage.getItem("ctn9845-sessionToken");
+        
+      function init(){
+        let CATEGORIES_URL = "https://opentdb.com/api_category.php";
+        
+        console.log(CATEGORIES_URL);
+
+        getData(CATEGORIES_URL, "categories");
+        
+        let TOKEN_URL = "https://opentdb.com/api_token.php?command=request"
+
+        if (sessionToken == null){
+            getData(TOKEN_URL, "token");
+            console.log("New Token Generated");
+        }
+        else{
+            sessionToken = localStorage.getItem("ctn9845-sessionToken");
+            console.log("Token Retrieved From Local Storage");
+            console.log(sessionToken);
+        }
+        }
+      
+      function startButtonClicked(){
+        console.log("startButtonClicked() called");
+        
+        document.querySelector("#status").innerHTML = "<b>Loading questions...</b>";
+        
+        let TRIVIA_URL = "https://opentdb.com/api.php?amount=";
+      
+        let url = TRIVIA_URL;
+       
+        url = url + amount.value + "&token=" + sessionToken;
+        
+        if (category.value == "all" && difficulty.value == "any"){
+          console.log(url);
+        } else if (difficulty.value == "any") {
+          url += "&category=" + category.value;
+          console.log(url);
+        } else if (category.value == "all"){
+          url += "&difficulty=" + difficulty.value;
+          console.log(url);
+        } else {
+          url += "&category=" + category.value + "&difficulty=" + difficulty.value;
+          console.log(url);
+        }
+
+        getData(url, "questions");
+        
+        scoreCard.innerHTML = "";
+        qNumber = amount.value;
+       }
+      
+      function categorySelected(){
+        console.log("categorySelected() called");
+      }
+      
+     function getData(url, type){
+        let xhr = new XMLHttpRequest();
+
+        if (type == "questions"){
+          xhr.onload = questionsLoaded;
+        }
+        else if (type == "categories"){
+          xhr.onload = categoriesLoaded;
+        }
+        else if (type == "token"){
+          xhr.onload = tokenLoaded;
+        }
+
+        xhr.onerror = dataError;
+
+        xhr.open("GET",url);
+       
+        xhr.send();
+      }
+      
+     function questionsLoaded(e){
+         let xhr = e.target;
+         console.log(xhr.responseText);
+
+         let obj = JSON.parse(xhr.responseText);
+
+         if(!obj.results || obj.results.length == 0){document.querySelector("#status").innerHTML = "<b>Sorry, No Trivia Questions</b>"; 
+            return;
+         }
+
+         let results = obj.results;
+         //console.log("results.length = " + results.length);
+
+         let bigString = "";
+
+         for (let i = 0; i < results.length; i++){
+             let result = results[i];
+
+             let line = `<div class='result'><p>${result.question}</p></div>`;
+             bigString += line;
+         }
+
+         document.querySelector("#content").innerHTML = bigString;
+         document.querySelector("#status").innerHTML = "<b>Success!</b>";
+         
+         for (let i = 0; i < results.length; i++){
+             let result = results[i];
+          	 let qNum = i + 1;
+             
+             appendAnswers(result, qNum);
+         }
+      }
+      
+function tokenLoaded(e){
+         let xhr = e.target;
+         console.log(xhr.responseText);
+
+         let obj = JSON.parse(xhr.responseText);
+
+         if (obj.response_code = "0"){
+            console.log(obj.response_message);
+            localStorage.setItem("ctn9845-sessionToken", obj.token);
+            sessionToken = obj.token;
+            return(obj.token);
+         }
+
+         else if (obj.response_code = "3"){
+             console.log("Session token not found")
+         }
+
+         else if (obj.response_code = "4"){
+             console.log("Session token exhausted. You've gone through all our questions!")
+         }
+
+         else{
+             console.log("opentbd.com failed retrieve token")
+         }
+      }
+      
+function categoriesLoaded(e){
+        let xhr = e.target;
+        console.log(xhr.responseText);
+        
+        let obj = JSON.parse(xhr.responseText);
+
+        let results = obj.trivia_categories;
+        console.log("trivia_categories.length = " + results.length);
+
+        let categoriesNum = results.length;
+
+        for (let i = 0; i < categoriesNum; i++){
+        let category = results[i].name;
+        let categoryId = results[i].id;
+        let categoriesDropdown = document.querySelector("#category");
+        let categoryOption = categoriesDropdown.appendChild(document.createElement("option"));
+        categoryOption.value = categoryId;
+        categoryOption.innerHTML = category;
+        }
+      }
+      
+      function appendAnswers(result, qNum){
+         let resultFind = document.querySelector(`.result:nth-child(${qNum})`);
+         let answerContainer = resultFind.appendChild(document.createElement("div"));
+         answerContainer.className = "answerContainer";
+         let answerText = answerContainer.appendChild(document.createElement("p"));
+         answerText.innerHTML = `<input name="answer${qNum}" type="radio" class="answer" value="correct" /> ${result.correct_answer}`;
+        for (let i of result.incorrect_answers){
+        let wrongAnswersText = answerContainer.appendChild(document.createElement("p"));
+        wrongAnswersText.innerHTML = `<input name="answer${qNum}" type="radio" class="answer" value="incorrect" /> ${i}`;
+        }
+        answerContainer.style.display= "flex";
+          
+        let answerList = answerContainer.querySelectorAll("p");
+        for (let a of answerList){
+            a.style.order = randomOrder(12);
+        }
+        
+        let submitButton = resultFind.appendChild(document.createElement("button"));
+        submitButton.innerHTML = "Check Answer";
+        
+        qAnswered = 0;
+        localScore = 0;
+        let checkText = resultFind.appendChild(document.createElement("p"));
+        checkText.className = "checkText";
+        submitButton.onclick = answerCheck;
+        
+      }
+     
+      function randomOrder(max){
+        return Math.floor(Math.random() * Math.floor(max));
+      }
+        
+      function answerCheck(e){
+          let ansAra = e.target.previousSibling.children;
+          let ansSelected = false;
+            for (let ansCon of ansAra){
+                if (ansCon.firstChild.value == "correct" && ansCon.firstChild.checked == true){
+//                    console.log("correct");
+                    e.target.nextSibling.innerHTML = `${ansCon.firstChild.value.charAt(0).toUpperCase() + ansCon.firstChild.value.slice(1)}!`;
+                    ansSelected = true;
+                    e.target.disabled = true;
+                    qAnswered++;
+                    localScore++;
+                    totalScore++;
+                    console.log(qAnswered);
+                } else if (ansCon.firstChild.value == "incorrect" && ansCon.firstChild.checked == true){
+//                    console.log("incorrect");
+                    e.target.nextSibling.innerHTML = `${ansCon.firstChild.value.charAt(0).toUpperCase() + ansCon.firstChild.value.slice(1)}, the correct answer is${ansAra[0].innerText}.`;
+                    ansSelected = true;
+                    e.target.disabled = true;
+                    qAnswered++;
+                    console.log(qAnswered);
+                } else if (ansSelected == false){
+                    e.target.nextSibling.innerHTML = "Please select an option.";
+                }
+            }
+          for (let ansCon of ansAra){
+              if (ansSelected == true){
+                    ansCon.firstChild.disabled = true;
+                }
+          }
+          
+          displayScore();
+      }
+        
+      function displayScore(){
+          if (qAnswered == qNumber){
+              scoreCard.innerHTML = `<p>You got ${localScore} out of ${qNumber} questions right! Your overall score is ${totalScore}.</p><p>Do you want to play again?</p><button id="restartButton">Go again!</button>`;
+              restartButton.onclick = startButtonClicked;
+          }
+      }
+      
+      function dataError(e){
+          console.log("An error occurred");
+      }
+    </script>
+  
+  </body>
+</html>
